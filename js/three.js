@@ -19074,7 +19074,7 @@ Object.assign( THREE.JSONLoader.prototype, {
 
 			var outputAnimations = [];
 
-			// parse old style Bone/Hierarchy animations
+			// parse old css Bone/Hierarchy animations
 			var animations = [];
 
 			if ( json.animation !== undefined ) {
