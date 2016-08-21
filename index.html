@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,13 +6,11 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <link rel="stylesheet" href="./css/style.css">
 </head>
-
-<body>
-
+<body onload="init()">
 Instances (1-10):
 <input type="range" id="instanceSlider" min="1" max="10" value="1">
-Tessellation:
-<input type="range" id="tessSlider" min="1" max="10" value="1">
+Tessellation (0-4):
+<input type="range" id="tessSlider" min="0" max="4" value="0">
 
 <script src="./js/three.js"></script>
 <script src="./js/OBJLoader.js"></script>
@@ -23,7 +20,6 @@ Tessellation:
 <script id="vertexShader" type="x-shader/x-vertex">
 	precision highp float;
 
-	uniform float sineTime;
 	uniform mat4 modelViewMatrix;
 	uniform mat4 projectionMatrix;
 
@@ -31,29 +27,45 @@ Tessellation:
 	attribute vec3 offset;
 	attribute vec4 color;
 
-	varying vec3 vPosition;
 	varying vec4 vColor;
 
-	void main(){
-		vPosition = offset * max(abs(sineTime * 2.0 + 1.0), 0.5) + position;
+	void main() {
+		vec3 offsetPosition = offset * 3.0 + position;
 		vColor = color;
-		gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition, 1.0 );
+		gl_Position = projectionMatrix * modelViewMatrix * vec4(offsetPosition, 1.0);
 	}
 </script>
 
 <script id="fragmentShader" type="x-shader/x-fragment">
 	precision highp float;
 
-	uniform float time;
-
-	varying vec3 vPosition;
 	varying vec4 vColor;
 
 	void main() {
-		vec4 color = vec4( vColor );
-		gl_FragColor = color;
+		gl_FragColor = vColor;
 	}
 </script>
 
+<script id="explosionVertexShader" type="x-shader/x-vertex">
+	precision highp float;
+
+	uniform mat4 modelViewMatrix;
+	uniform mat4 projectionMatrix;
+	uniform float time;
+
+	attribute vec3 position;
+	attribute vec3 offset;
+	attribute vec4 color;
+	attribute vec3 dir;
+
+	varying vec4 vColor;
+
+	void main() {
+		vec3 movedPosition = (offset * 3.0 + position) + dir * time;
+		vColor = color;
+		gl_Position = projectionMatrix * modelViewMatrix * vec4(movedPosition, 1.0);
+		gl_PointSize = 2.0;
+	}
+</script>
 </body>
 </html>

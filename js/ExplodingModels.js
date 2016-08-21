@@ -1,25 +1,21 @@
-// TODO: Add .gitignore file
-// TODO: Refactor to remove as many global variables as possible, then organize all local variables
-// TODO: Fix explosion location
-// TODO: Better comments and documentation
-// TODO: Fix lighting and remove random colors for instances
-// TODO: Fix range of tessellation slider. It should't go up as high as it does
-// TODO: Shoot out triangles (instead of points) per face (instead of vertex)
-// TODO: Transition to Angular 2 (with Angular 2 Material) and Typescript
-// TODO: Support for user-provided .obj files
+/* TODO: Refactor to remove as many global variables as possible, then organize all local variables */
+/* TODO: Fix lighting and add smooth shading for models */
+/* TODO: Shoot out triangles (instead of points) per face (instead of vertex) */
+/* TODO: Transition to Angular 2 (with Angular 2 Material), Typescript, and BabylonJS */
+/* TODO: Support for user-provided .obj files */
 
 var camera, scene, renderer;
 
-var model, parts = [];
+var loadedObject, model, explosionMaterial, parts = [];
 var instances = document.getElementById('instanceSlider').value;
 var subdivisions = document.getElementById('tessSlider').value;
-var loadedObject;
 var needsReset = false;
 var clock = new THREE.Clock(false);
+var start;
 
-init();
-animate();
-
+/**
+ * Initialize variables, load the model geometry, register event listeners, and create initial scene.
+ */
 function init() {
     var container = document.createElement('div');
     document.body.appendChild(container);
@@ -28,6 +24,11 @@ function init() {
     camera.position.z = 10;
 
     scene = new THREE.Scene();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
 
     var manager = new THREE.LoadingManager();
     manager.onProgress = function(item, loaded, total) {
@@ -49,11 +50,6 @@ function init() {
         createScene();
     }, onProgress, onError);
 
-    renderer = new THREE.WebGLRenderer();
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
-
     var instanceSlider = document.getElementById('instanceSlider');
     instanceSlider.addEventListener('change', function() {
         instances = instanceSlider.value;
@@ -68,23 +64,26 @@ function init() {
         createScene();
     });
 
-    container.addEventListener('mousedown', onclick, false);
-    window.addEventListener('resize', onWindowResize, false);
+    container.addEventListener('mousedown', function() {
+        if (model) {
+            //model.visible = false;
+        }
+        start = Date.now();
+        parts.push(new ExplodeAnimation(model.geometry));
+    });
+
+    window.addEventListener('resize', function() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+    });
+
+    animate();
 }
 
-function onclick() {
-    if (model) {
-        model.visible = false;
-    }
-    parts.push(new ExplodeAnimation(model.geometry));
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize( window.innerWidth, window.innerHeight );
-}
-
+/**
+ * Remove all objects from the scene.
+ */
 function clearScene() {
     for (var i = scene.children.length - 1; i >= 0; --i) {
         var obj = scene.children[i];
@@ -92,6 +91,9 @@ function clearScene() {
     }
 }
 
+/**
+ * Create the scene by adding subdivisions, offsets/colors for instancing, and a material to the geometry.
+ */
 function createScene() {
     var geometry = new THREE.Geometry().fromBufferGeometry(loadedObject.children[0].geometry);
     var modifier = new THREE.BufferSubdivisionModifier(subdivisions);
@@ -102,25 +104,23 @@ function createScene() {
     geometry.maxInstancedCount = instances;
 
     var offsets = new THREE.InstancedBufferAttribute(new Float32Array(instances * geometry.attributes.position.array.length), 3, 1);
-    for (var i = 0, ul = offsets.count; i < ul; ++i) {
+    for (var i = 0, ul = offsets.count; i != ul; ++i) {
         offsets.setXYZ(i, Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
     }
     geometry.addAttribute('offset', offsets);
 
     var colors = new THREE.InstancedBufferAttribute(new Float32Array(instances * 4), 4, 1);
-    for (var i = 0, ul = colors.count; i < ul; ++i) {
-        colors.setXYZW(i, Math.random(), Math.random(), Math.random(), Math.random());
+    for (var i = 0, ul = colors.count; i != ul; ++i) {
+        colors.setXYZW(i, Math.random(), Math.random(), Math.random(), 1.0);
     }
     geometry.addAttribute('color', colors);
 
     var material = new THREE.RawShaderMaterial({
-        uniforms: {
-            time: { value: 1.0 },
-            sineTime: { value: 1.0 }
-        },
-        vertexShader: document.getElementById( 'vertexShader' ).textContent,
-        fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
-        side: THREE.DoubleSide
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('fragmentShader').textContent,
+        side: THREE.DoubleSide,
+        transparent: true,
+        wireframe: true
     });
 
     model = new THREE.Mesh(geometry, material);
@@ -128,12 +128,14 @@ function createScene() {
     scene.add(model);
 }
 
+/**
+ * Animate any explosions, keep track of when to reset the scene after an explosion, and call the rendering function.
+ */
 function animate() {
     requestAnimationFrame(animate);
 
-    var pCount = parts.length;
-    while(pCount--) {
-        parts[pCount].update();
+    if (explosionMaterial) {
+        explosionMaterial.uniforms['time'].value = .01 * (Date.now() - start);
     }
 
     if (needsReset && !clock.running) {
@@ -143,6 +145,7 @@ function animate() {
         clock.stop();
         clock = new THREE.Clock(false);
         needsReset = false;
+        start = Date.now();
         clearScene();
         createScene();
     }
@@ -150,47 +153,47 @@ function animate() {
     render();
 }
 
+/**
+ * Set the view matrix and render the scene.
+ */
 function render() {
     camera.lookAt(scene.position);
     renderer.render(scene, camera);
-
 }
 
+/**
+ * Creates objects that initialize and update particle-based explosion animations.
+ * @param {THREE.InstancedBufferGeometry} bufferGeometry - The subdivided and instanced model geometry.
+ * @constructor
+ */
 function ExplodeAnimation(bufferGeometry) {
     needsReset = true;
-    var geometry = new THREE.Geometry(), dirs = [], movementSpeed = 2;
+    var movementSpeed = 2;
 
-    for (var i = 0, len = bufferGeometry.attributes.offset.count; i < len; ++i) {
-        var vertex = new THREE.Vector3();
-        vertex.x = bufferGeometry.attributes.offset.array[3 * i];
-        vertex.y = bufferGeometry.attributes.offset.array[3 * i + 1];
-        vertex.z = bufferGeometry.attributes.offset.array[3 * i + 2];
-        geometry.vertices.push(vertex);
-
-        dirs.push({
-            x: (Math.random() * movementSpeed) - (movementSpeed/2),
-            y: (Math.random() * movementSpeed) - (movementSpeed/2),
-            z: (Math.random() * movementSpeed) - (movementSpeed/2)
-        });
+    var dirs = new THREE.InstancedBufferAttribute(new Float32Array(bufferGeometry.attributes.offset.array.length), 3, instances / bufferGeometry.attributes.offset.count);
+    for (var i = 0, ul = dirs.count; i != ul; ++i) {
+        dirs.setXYZ(
+            i,
+            (Math.random() * movementSpeed) - (movementSpeed / 2),
+            (Math.random() * movementSpeed) - (movementSpeed / 2),
+            (Math.random() * movementSpeed) - (movementSpeed / 2)
+        );
     }
-    var material = new THREE.ParticleBasicMaterial({ size: .03 });
-    var particles = new THREE.ParticleSystem(geometry, material);
+    bufferGeometry.addAttribute('dir', dirs);
 
-    this.object = particles;
-    this.status = true;
-
-    scene.add(this.object);
-
-    this.update = function() {
-        if (this.status) {
-            var pCount = bufferGeometry.attributes.offset.count;
-            while (pCount--) {
-                var particle =  this.object.geometry.vertices[pCount];
-                particle.x += dirs[pCount].x;
-                particle.y += dirs[pCount].y;
-                particle.z += dirs[pCount].z;
+    explosionMaterial = new THREE.RawShaderMaterial({
+        uniforms: {
+            time: {
+                type: "f",
+                value: 0.0
             }
-            this.object.geometry.verticesNeedUpdate = true;
-        }
-    }
+        },
+        vertexShader: document.getElementById('explosionVertexShader').textContent,
+        fragmentShader: document.getElementById('fragmentShader').textContent
+    });
+    var particles = new THREE.Points(bufferGeometry, explosionMaterial);
+
+    model.visible = false;
+
+    scene.add(particles);
 }
