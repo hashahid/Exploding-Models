@@ -1,12 +1,9 @@
-/* TODO: Refactor to remove as many global variables as possible, then organize all local variables */
-/* TODO: Fix lighting and add smooth shading for models */
-/* TODO: Shoot out triangles (instead of points) per face (instead of vertex) */
 /* TODO: Transition to Angular 2 (with Angular 2 Material), Typescript, and BabylonJS */
 /* TODO: Support for user-provided .obj files */
 
 var camera, scene, renderer;
 
-var loadedObject, model, explosionMaterial, parts = [];
+var loadedObject, model, explosionMaterial;
 var instances = document.getElementById('instanceSlider').value;
 var subdivisions = document.getElementById('tessSlider').value;
 var needsReset = false;
@@ -65,11 +62,11 @@ function init() {
     });
 
     container.addEventListener('mousedown', function() {
-        if (model) {
-            //model.visible = false;
+        if (needsReset) {
+            return;
         }
         start = Date.now();
-        parts.push(new ExplodeAnimation(model.geometry));
+        explodeGeometry(model.geometry);
     });
 
     window.addEventListener('resize', function() {
@@ -162,15 +159,18 @@ function render() {
 }
 
 /**
- * Creates objects that initialize and update particle-based explosion animations.
+ * Adds particle explosions to the scene based on the provided geometry.
  * @param {THREE.InstancedBufferGeometry} bufferGeometry - The subdivided and instanced model geometry.
- * @constructor
  */
-function ExplodeAnimation(bufferGeometry) {
+function explodeGeometry(bufferGeometry) {
     needsReset = true;
     var movementSpeed = 2;
+    var dirs = new THREE.InstancedBufferAttribute(
+        new Float32Array(bufferGeometry.attributes.offset.array.length),
+        3,
+        instances / bufferGeometry.attributes.offset.count
+    );
 
-    var dirs = new THREE.InstancedBufferAttribute(new Float32Array(bufferGeometry.attributes.offset.array.length), 3, instances / bufferGeometry.attributes.offset.count);
     for (var i = 0, ul = dirs.count; i != ul; ++i) {
         dirs.setXYZ(
             i,
