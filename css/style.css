@@ -1,7 +1,11 @@
 body {
-    font-family: Monospace;
-    background-color: #000;
-    color: #fff;
+    font-family: "Roboto","Helvetica Neue Light","Helvetica Neue",Helvetica,Arial,"Lucida Grande",sans-serif;
     margin: 0px;
     overflow: hidden;
+}
+
+.controls {
+    margin: auto;
+    padding: 5px 0px;
+    text-align: center;
 }

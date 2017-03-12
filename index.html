@@ -1,71 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <title>Exploding Models</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <link rel="stylesheet" href="./css/style.css">
+	<title>Exploding Models</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel="stylesheet" href="./css/style.css">
+	<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.blue-red.min.css">
+	<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+	<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 </head>
-<body onload="init()">
-Instances (1-10):
-<input type="range" id="instanceSlider" min="1" max="10" value="1">
-Tessellation (0-4):
-<input type="range" id="tessSlider" min="0" max="4" value="0">
 
-<script src="./js/three.js"></script>
-<script src="./js/OBJLoader.js"></script>
-<script src="./js/BufferSubdivisionModifier.js"></script>
-<script src="./js/ExplodingModels.js"></script>
+<body class="mdl-color--grey-100 mdl-base" onload="init()">
+	<table class="controls">
+		<tr>
+			<td style="padding-right: 15px;">
+				<button id="upload-btn" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored">
+                    Upload OBJ File
+                </button>
+				<input id="custom-obj-file" type="file" name="custom-obj-file" accept=".obj" style="display: none;">
+			</td>
+			<td>
+				<label>Instances (1-10):
+                    <input class="mdl-slider mdl-js-slider" type="range" id="instance-slider" min="1" max="10" value="1" tabindex="0">
+                </label>
+			</td>
+			<td>
+				<label>Subdivisions (0-3):
+                    <input class="mdl-slider mdl-js-slider" type="range" id="subdivision-slider" min="0" max="3" value="0" tabindex="1">
+                </label>
+			</td>
+		</tr>
+	</table>
 
-<script id="vertexShader" type="x-shader/x-vertex">
-	precision highp float;
+	<script src="./js/three.js"></script>
+	<script src="./js/OBJLoader.js"></script>
+	<script src="./js/BufferSubdivisionModifier.js"></script>
+	<script src="./js/ExplodingModels.js"></script>
 
-	uniform mat4 modelViewMatrix;
-	uniform mat4 projectionMatrix;
+	<script id="vertexShader" type="x-shader/x-vertex">
+		precision highp float;
 
-	attribute vec3 position;
-	attribute vec3 offset;
-	attribute vec4 color;
+		uniform mat4 modelViewMatrix;
+		uniform mat4 projectionMatrix;
 
-	varying vec4 vColor;
+		attribute vec3 position;
+		attribute vec3 offset;
+		attribute vec4 color;
 
-	void main() {
-		vec3 offsetPosition = offset * 3.0 + position;
-		vColor = color;
-		gl_Position = projectionMatrix * modelViewMatrix * vec4(offsetPosition, 1.0);
-	}
-</script>
+		varying vec4 vColor;
 
-<script id="fragmentShader" type="x-shader/x-fragment">
-	precision highp float;
+		void main() {
+			vec3 offsetPosition = offset * 3.0 + position;
+			vColor = color;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(offsetPosition, 1.0);
+		}
+	</script>
 
-	varying vec4 vColor;
+	<script id="fragmentShader" type="x-shader/x-fragment">
+		precision highp float;
 
-	void main() {
-		gl_FragColor = vColor;
-	}
-</script>
+		varying vec4 vColor;
 
-<script id="explosionVertexShader" type="x-shader/x-vertex">
-	precision highp float;
+		void main() {
+			gl_FragColor = vColor;
+		}
+	</script>
 
-	uniform mat4 modelViewMatrix;
-	uniform mat4 projectionMatrix;
-	uniform float time;
+	<script id="explosionVertexShader" type="x-shader/x-vertex">
+		precision highp float;
 
-	attribute vec3 position;
-	attribute vec3 offset;
-	attribute vec4 color;
-	attribute vec3 dir;
+		uniform mat4 modelViewMatrix;
+		uniform mat4 projectionMatrix;
+		uniform float time;
 
-	varying vec4 vColor;
+		attribute vec3 position;
+		attribute vec3 offset;
+		attribute vec4 color;
+		attribute vec3 dir;
 
-	void main() {
-		vec3 movedPosition = (offset * 3.0 + position) + dir * time;
-		vColor = color;
-		gl_Position = projectionMatrix * modelViewMatrix * vec4(movedPosition, 1.0);
-		gl_PointSize = 2.0;
-	}
-</script>
+		varying vec4 vColor;
+
+		void main() {
+			vec3 movedPosition = (offset * 3.0 + position) + dir * time;
+			vColor = color;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(movedPosition, 1.0);
+			gl_PointSize = 2.0;
+		}
+	</script>
 </body>
+
 </html>
