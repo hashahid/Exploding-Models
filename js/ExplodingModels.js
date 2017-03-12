@@ -1,11 +1,8 @@
-/* TODO: Transition to Angular 2 (with Angular 2 Material), Typescript, and BabylonJS */
-/* TODO: Support for user-provided .obj files */
-
 var camera, scene, renderer;
 
 var loadedObject, model, explosionMaterial;
-var instances = document.getElementById('instanceSlider').value;
-var subdivisions = document.getElementById('tessSlider').value;
+var instances = document.getElementById('instance-slider').value;
+var subdivisions = document.getElementById('subdivision-slider').value;
 var needsReset = false;
 var clock = new THREE.Clock(false);
 var start;
@@ -28,40 +25,57 @@ function init() {
     container.appendChild(renderer.domElement);
 
     var manager = new THREE.LoadingManager();
-    manager.onProgress = function(item, loaded, total) {
+    manager.onProgress = function (item, loaded, total) {
         console.log(item, loaded, total);
     };
 
-    var onProgress = function(xhr) {
+    var onProgress = function (xhr) {
         if (xhr.lengthComputable) {
             var percentComplete = xhr.loaded / xhr.total * 100;
             console.log(Math.round(percentComplete, 2) + '% downloaded');
         }
     };
 
-    var onError = function(xhr) {};
+    var onError = function (xhr) { };
 
     var loader = new THREE.OBJLoader(manager);
-    loader.load('./resources/wt_teapot.obj', function(object) {
+    loader.load('./resources/wt_teapot.obj', function (object) {
         loadedObject = object;
         createScene();
     }, onProgress, onError);
 
-    var instanceSlider = document.getElementById('instanceSlider');
-    instanceSlider.addEventListener('change', function() {
+    var customObjFile = document.getElementById('custom-obj-file');
+    customObjFile.addEventListener('change', function () {
+        if (this.files[0]) {
+            var filename = URL.createObjectURL(this.files[0]);
+            loader.load(filename, function (object) {
+                loadedObject = object;
+                clearScene();
+                createScene();
+            }, onProgress, onError);
+        }
+    });
+
+    var uploadBtn = document.getElementById('upload-btn');
+    uploadBtn.addEventListener('click', function () {
+        customObjFile.click();
+    });
+
+    var instanceSlider = document.getElementById('instance-slider');
+    instanceSlider.addEventListener('change', function () {
         instances = instanceSlider.value;
         clearScene();
         createScene();
     });
 
-    var tessSlider = document.getElementById('tessSlider');
-    tessSlider.addEventListener('change', function() {
-        subdivisions = tessSlider.value;
+    var subdivisionSlider = document.getElementById('subdivision-slider');
+    subdivisionSlider.addEventListener('change', function () {
+        subdivisions = subdivisionSlider.value;
         clearScene();
         createScene();
     });
 
-    container.addEventListener('mousedown', function() {
+    container.addEventListener('mousedown', function () {
         if (needsReset) {
             return;
         }
@@ -69,10 +83,10 @@ function init() {
         explodeGeometry(model.geometry);
     });
 
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-        renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
     animate();
