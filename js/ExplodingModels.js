@@ -62,14 +62,14 @@ function init() {
     });
 
     var instanceSlider = document.getElementById('instance-slider');
-    instanceSlider.addEventListener('change', function () {
+    instanceSlider.addEventListener('input', function () {
         instances = instanceSlider.value;
         clearScene();
         createScene();
     });
 
     var subdivisionSlider = document.getElementById('subdivision-slider');
-    subdivisionSlider.addEventListener('change', function () {
+    subdivisionSlider.addEventListener('input', function () {
         subdivisions = subdivisionSlider.value;
         clearScene();
         createScene();
